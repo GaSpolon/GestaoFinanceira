@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block titulo %}Investimentos — Gestao Financeira{% endblock %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <h1 class="mb-0">Novo Investimento</h1>
+            <span class="badge bg-secondary fs-6">Aportes e Resgates</span>
+        </div>
+
+        <!-- Cards de resumo -->
+        <div class="row mb-4 g-3">
+            <div class="col-md-4">
+                <div class="card border-success h-100 text-center py-2">
+                    <div class="card-body">
+                        <small class="text-muted text-uppercase fw-semibold">Total Aportes</small>
+                        <h3 class="text-success mb-0 mt-1">R$ {{ '%.2f'|format(total_aportes) }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-danger h-100 text-center py-2">
+                    <div class="card-body">
+                        <small class="text-muted text-uppercase fw-semibold">Total Resgates</small>
+                        <h3 class="text-danger mb-0 mt-1">R$ {{ '%.2f'|format(total_resgates) }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-primary h-100 text-center py-2">
+                    <div class="card-body">
+                        <small class="text-muted text-uppercase fw-semibold">Saldo Acumulado</small>
+                        <h3 class="mb-0 mt-1 {% if saldo_total >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            R$ {{ '%.2f'|format(saldo_total) }}
+                        </h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="POST" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="tipo" class="form-label fw-semibold">Tipo</label>
+                        <select name="tipo" id="tipo" class="form-select form-select-lg" required>
+                            <option value="aporte" selected>Aporte</option>
+                            <option value="resgate">Resgate</option>
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label for="descricao" class="form-label fw-semibold">Descricao</label>
+                        <input type="text" name="descricao" id="descricao" class="form-control form-control-lg"
+                               placeholder="Ex: Compra de acoes" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="valor" class="form-label fw-semibold">Valor (R$)</label>
+                        <input type="number" name="valor" id="valor" class="form-control form-control-lg"
+                               step="0.01" min="0.01" placeholder="0,00" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="data" class="form-label fw-semibold">Data</label>
+                        <input type="date" name="data" id="data" class="form-control form-control-lg" value="{{ hoje }}">
+                    </div>
+                    <div class="col-md-5">
+                        <label for="categoria_id" class="form-label fw-semibold">Categoria</label>
+                        <select name="categoria_id" id="categoria_id" class="form-select form-select-lg" required>
+                            {% for cat in categorias %}
+                            <option value="{{ cat.id }}">{{ cat.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-success btn-lg w-100">
+                            <span class="d-inline-block me-1" style="font-size:1.0em;"></span>
+                            Registrar Movimentação
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="text-center mt-3">
+            <a href="{{ url_for('historico') }}" class="text-decoration-none">
+                Ver historico completo de investimentos &rarr;
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

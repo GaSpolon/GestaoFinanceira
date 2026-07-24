@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block titulo %}Transacoes — Gestao Financeira{% endblock %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <h1 class="mb-0">Nova Transacao</h1>
+            <span class="badge bg-secondary fs-6">Entradas e Saidas</span>
+        </div>
+
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="POST" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="tipo" class="form-label fw-semibold">Tipo</label>
+                        <select name="tipo" id="tipo" class="form-select form-select-lg" required>
+                            <option value="entrada">Entrada</option>
+                            <option value="saida" selected>Saida</option>
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label for="descricao" class="form-label fw-semibold">Descricao</label>
+                        <input type="text" name="descricao" id="descricao" class="form-control form-control-lg"
+                               placeholder="Ex: Compras do mes" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="valor" class="form-label fw-semibold">Valor (R$)</label>
+                        <input type="number" name="valor" id="valor" class="form-control form-control-lg"
+                               step="0.01" min="0.01" placeholder="0,00" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="data" class="form-label fw-semibold">Data</label>
+                        <input type="date" name="data" id="data" class="form-control form-control-lg" value="{{ hoje }}">
+                    </div>
+                    <div class="col-md-5">
+                        <label for="categoria_id" class="form-label fw-semibold">Categoria</label>
+                        <select name="categoria_id" id="categoria_id" class="form-select form-select-lg" required>
+                            {% for cat in categorias %}
+                            <option value="{{ cat.id }}" data-tipo="{{ cat.tipo }}">{{ cat.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-success btn-lg w-100">
+                            <span class="d-inline-block me-1" style="font-size:0.9em;"></span>
+                            Registrar Transação
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="text-center mt-3">
+            <a href="{{ url_for('historico') }}" class="text-decoration-none">
+                Ver historico completo de transacoes &rarr;
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('tipo').addEventListener('change', function() {
+    const tipo = this.value;
+    const select = document.getElementById('categoria_id');
+    for (const opt of select.options) {
+        opt.style.display = opt.dataset.tipo === tipo ? '' : 'none';
+    }
+    for (const opt of select.options) {
+        if (opt.style.display !== 'none') {
+            opt.selected = true;
+            break;
+        }
+    }
+});
+document.getElementById('tipo').dispatchEvent(new Event('change'));
+</script>
+{% endblock %}

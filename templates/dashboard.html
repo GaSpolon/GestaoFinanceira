@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block titulo %}Dashboard — Gestão Financeira{% endblock %}
+
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block conteudo %}
+<h1 class="mb-4">Dashboard Financeiro</h1>
+
+<!-- Filtro de período -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <label for="filtroPeriodo" class="form-label">Período</label>
+        <select id="filtroPeriodo" class="form-select">
+            {% for chave, label in periodos_disponiveis %}
+            <option value="{{ chave }}">{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label for="filtroValor" class="form-label">Valor do período</label>
+        <select id="filtroValor" class="form-select"></select>
+    </div>
+    <div class="col-md-4 d-flex align-items-end">
+        <button id="btnAtualizar" class="btn btn-primary w-100">Atualizar</button>
+    </div>
+</div>
+
+<!-- Cartões de resumo -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card border-success h-100">
+            <div class="card-body text-center">
+                <h6 class="card-subtitle text-muted mb-2">Total de Receitas</h6>
+                <h2 class="text-success mb-0" id="totalEntradas">R$ 0,00</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card border-danger h-100">
+            <div class="card-body text-center">
+                <h6 class="card-subtitle text-muted mb-2">Total de Despesas</h6>
+                <h2 class="text-danger mb-0" id="totalSaidas">R$ 0,00</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card border-primary h-100">
+            <div class="card-body text-center">
+                <h6 class="card-subtitle text-muted mb-2">Saldo do Período</h6>
+                <h2 class="text-primary mb-0" id="saldoPeriodo">R$ 0,00</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos -->
+<div class="row mb-4">
+    <div class="col-lg-5 mb-4">
+        <div class="card h-100">
+            <div class="card-header">Despesas por Categoria</div>
+            <div class="card-body">
+                <canvas id="graficoPizza"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7 mb-4">
+        <div class="card h-100">
+            <div class="card-header">Receitas vs Despesas</div>
+            <div class="card-body">
+                <canvas id="graficoBarras"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">Saldo Acumulado</div>
+            <div class="card-body">
+                <canvas id="graficoLinha"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/graficos.js') }}"></script>
+{% endblock %}

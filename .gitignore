@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Banco de dados (dados do usuario)
+instance/
+
+# Variaveis de ambiente
+.env
+
+# Ambiente virtual
+venv/
+.venv/

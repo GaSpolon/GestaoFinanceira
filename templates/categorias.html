@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block titulo %}Categorias — Gestao Financeira{% endblock %}
+
+{% block conteudo %}
+<h1 class="mb-4">Categorias</h1>
+
+<div class="row g-4">
+    <!-- Categorias de Transacoes -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center gap-2">
+                <span class="badge bg-primary rounded-pill">T</span>
+                <span class="fw-bold">Categorias de Transacoes</span>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('criar_categoria') }}" class="row g-2 mb-3">
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Nova categoria</label>
+                    </div>
+                    <div class="col-5">
+                        <input type="text" name="nome" class="form-control" placeholder="Nome" required>
+                    </div>
+                    <div class="col-4">
+                        <select name="tipo" class="form-select">
+                            <option value="entrada">Entrada</option>
+                            <option value="saida" selected>Saida</option>
+                        </select>
+                    </div>
+                    <div class="col-3">
+                        <input type="color" name="cor" class="form-control form-control-color"
+                               value="#6c757d" style="height:38px">
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary btn-sm w-100">Adicionar Categoria</button>
+                    </div>
+                </form>
+
+                <div class="list-group list-group-flush">
+                    {% for cat in categorias %}
+                    <div class="list-group-item d-flex align-items-center gap-2 px-0">
+                        <span class="d-inline-block rounded-circle flex-shrink-0"
+                              style="width:16px;height:16px;background-color:{{ cat.cor }}"></span>
+                        <span class="flex-grow-1">{{ cat.nome }}</span>
+                        <span class="badge {% if cat.tipo == 'entrada' %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ cat.tipo }}
+                        </span>
+                        {% if cat.transacoes.count() == 0 %}
+                        <form method="POST" action="{{ url_for('excluir_categoria', id=cat.id) }}"
+                              onsubmit="return confirm('Excluir categoria \"{{ cat.nome }}\"?')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">&times;</button>
+                        </form>
+                        {% else %}
+                        <span class="text-muted small" title="Possui transacoes vinculadas">{{ cat.transacoes.count() }}</span>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-3 mb-0">Nenhuma categoria cadastrada.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Categorias de Investimentos -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center gap-2">
+                <span class="badge bg-warning text-dark rounded-pill">I</span>
+                <span class="fw-bold">Categorias de Investimentos</span>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('criar_categoria_investimento') }}" class="row g-2 mb-3">
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Nova categoria</label>
+                    </div>
+                    <div class="col-9">
+                        <input type="text" name="nome" class="form-control" placeholder="Nome" required>
+                    </div>
+                    <div class="col-3">
+                        <input type="color" name="cor" class="form-control form-control-color"
+                               value="#6c757d" style="height:38px">
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-warning btn-sm w-100 text-dark">Adicionar Categoria</button>
+                    </div>
+                </form>
+
+                <div class="list-group list-group-flush">
+                    {% for cat in categorias_investimento %}
+                    <div class="list-group-item d-flex align-items-center gap-2 px-0">
+                        <span class="d-inline-block rounded-circle flex-shrink-0"
+                              style="width:16px;height:16px;background-color:{{ cat.cor }}"></span>
+                        <span class="flex-grow-1">{{ cat.nome }}</span>
+                        {% if cat.movimentacoes.count() == 0 %}
+                        <form method="POST" action="{{ url_for('excluir_categoria_investimento', id=cat.id) }}"
+                              onsubmit="return confirm('Excluir categoria \"{{ cat.nome }}\"?')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">&times;</button>
+                        </form>
+                        {% else %}
+                        <span class="text-muted small" title="Possui movimentacoes vinculadas">{{ cat.movimentacoes.count() }}</span>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-3 mb-0">Nenhuma categoria cadastrada.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

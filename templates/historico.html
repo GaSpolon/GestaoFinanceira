@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block titulo %}Historico — Gestao Financeira{% endblock %}
+
+{% block conteudo %}
+<h1 class="mb-4">Historico Financeiro</h1>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">Origem</label>
+                <select name="origem" class="form-select">
+                    <option value="">Todas as origens</option>
+                    <option value="transacao" {% if filtro_origem == 'transacao' %}selected{% endif %}>Transacoes</option>
+                    <option value="investimento" {% if filtro_origem == 'investimento' %}selected{% endif %}>Investimentos</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold">Tipo</label>
+                <select name="tipo" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="entrada" {% if filtro_tipo == 'entrada' %}selected{% endif %}>Entrada</option>
+                    <option value="saida" {% if filtro_tipo == 'saida' %}selected{% endif %}>Saida</option>
+                    <option value="aporte" {% if filtro_tipo == 'aporte' %}selected{% endif %}>Aporte</option>
+                    <option value="resgate" {% if filtro_tipo == 'resgate' %}selected{% endif %}>Resgate</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">De</label>
+                <input type="date" name="data_inicio" class="form-control" value="{{ filtro_data_inicio }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-semibold">Ate</label>
+                <input type="date" name="data_fim" class="form-control" value="{{ filtro_data_fim }}">
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabela unificada -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-bold">Registros Encontrados</span>
+        <span class="badge bg-secondary fs-6">{{ registros|length }} registro(s)</span>
+    </div>
+    <div class="card-body p-0">
+        {% if registros %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Data</th>
+                        <th>Origem</th>
+                        <th>Tipo</th>
+                        <th>Descricao</th>
+                        <th>Categoria</th>
+                        <th>Valor</th>
+                        <th>Acoes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in registros %}
+                    <tr>
+                        <td class="text-nowrap">{{ r.data.strftime('%d/%m/%Y') }}</td>
+                        <td>
+                            {% if r.origem == 'transacao' %}
+                            <span class="badge bg-primary rounded-pill">T</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark rounded-pill">I</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if r.tipo_display == 'Entrada' %}
+                            <span class="badge bg-success">Entrada</span>
+                            {% elif r.tipo_display == 'Saida' %}
+                            <span class="badge bg-danger">Saida</span>
+                            {% elif r.tipo_display == 'Aporte' %}
+                            <span class="badge bg-success">Aporte</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">Resgate</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ r.descricao }}</td>
+                        <td>
+                            <span class="badge" style="background-color: {{ r.cor_categoria }}">
+                                {{ r.nome_categoria }}
+                            </span>
+                        </td>
+                        <td class="fw-bold {% if r.valor_display >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ r.valor_formatado }}
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('excluir_do_historico', origem=r.origem, id=r.id) }}"
+                                  onsubmit="return confirm('Excluir este registro?')" style="display:inline">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center py-5 mb-0">
+            <span style="font-size:2rem;display:block;margin-bottom:0.5rem;">&#128203;</span>
+            Nenhum registro encontrado com os filtros atuais.
+        </p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
