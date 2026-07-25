@@ -285,6 +285,42 @@ async function carregarDados() {
     }
 }
 
+async function importarCSV(arquivo) {
+    if (!arquivo) return;
+    const status = document.getElementById('statusImportacao');
+    const input = document.getElementById('inputArquivoImportar');
+    status.textContent = 'Importando ' + arquivo.name + '...';
+    status.className = 'text-muted small';
+
+    try {
+        const formData = new FormData();
+        formData.append('arquivo', arquivo);
+        const resp = await fetch('/api/importar', { method: 'POST', body: formData });
+        const dados = await resp.json();
+
+        if (dados.ok) {
+            const total = dados.importadas || 0;
+            status.textContent = total > 0
+                ? `${total} transação(ões) importada(s). Atualizando gráficos...`
+                : 'Nenhuma transação nova encontrada.';
+            status.className = 'text-success small';
+            if (total > 0) {
+                await carregarDados();
+                status.textContent = `${total} transação(ões) importada(s) com sucesso.`;
+            }
+        } else {
+            status.textContent = 'Erro: ' + (dados.erro || 'desconhecido');
+            status.className = 'text-danger small';
+        }
+    } catch (err) {
+        status.textContent = 'Erro ao importar. Verifique o console.';
+        status.className = 'text-danger small';
+        console.error(err);
+    } finally {
+        input.value = '';
+    }
+}
+
 // Inicializacao
 document.addEventListener('DOMContentLoaded', function () {
     gerarOpcoesPeriodo();

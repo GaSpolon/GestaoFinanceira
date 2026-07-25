@@ -44,9 +44,14 @@
                         <span class="badge {% if cat.tipo == 'entrada' %}bg-success{% else %}bg-danger{% endif %}">
                             {{ cat.tipo }}
                         </span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                onclick="abrirEdicaoTransacao({{ cat.id }}, '{{ cat.nome|e }}', '{{ cat.tipo }}', '{{ cat.cor }}')"
+                                title="Editar categoria">
+                            &#9998;
+                        </button>
                         {% if cat.transacoes.count() == 0 %}
                         <form method="POST" action="{{ url_for('excluir_categoria', id=cat.id) }}"
-                              onsubmit="return confirm('Excluir categoria \"{{ cat.nome }}\"?')">
+                              onsubmit="return confirm('Excluir categoria \"{{ cat.nome }}\"?')" class="d-inline">
                             <button type="submit" class="btn btn-sm btn-outline-danger">&times;</button>
                         </form>
                         {% else %}
@@ -91,9 +96,14 @@
                         <span class="d-inline-block rounded-circle flex-shrink-0"
                               style="width:16px;height:16px;background-color:{{ cat.cor }}"></span>
                         <span class="flex-grow-1">{{ cat.nome }}</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                onclick="abrirEdicaoInvestimento({{ cat.id }}, '{{ cat.nome|e }}', '{{ cat.cor }}')"
+                                title="Editar categoria">
+                            &#9998;
+                        </button>
                         {% if cat.movimentacoes.count() == 0 %}
                         <form method="POST" action="{{ url_for('excluir_categoria_investimento', id=cat.id) }}"
-                              onsubmit="return confirm('Excluir categoria \"{{ cat.nome }}\"?')">
+                              onsubmit="return confirm('Excluir categoria \"{{ cat.nome }}\"?')" class="d-inline">
                             <button type="submit" class="btn btn-sm btn-outline-danger">&times;</button>
                         </form>
                         {% else %}
@@ -108,4 +118,63 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de Edicao -->
+<div class="modal fade" id="modalEditarCategoria" tabindex="-1" aria-labelledby="modalEditarTitulo" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="formEditarCategoria" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalEditarTitulo">Editar Categoria</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editNome" class="form-label fw-semibold">Nome</label>
+                        <input type="text" id="editNome" name="nome" class="form-control" required>
+                    </div>
+                    <div class="mb-3" id="grupoEditTipo">
+                        <label for="editTipo" class="form-label fw-semibold">Tipo</label>
+                        <select id="editTipo" name="tipo" class="form-select">
+                            <option value="entrada">Entrada</option>
+                            <option value="saida">Saida</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCor" class="form-label fw-semibold">Cor</label>
+                        <input type="color" id="editCor" name="cor" class="form-control form-control-color"
+                               style="width:100%;height:42px">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alteracoes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function abrirEdicaoTransacao(id, nome, tipo, cor) {
+    document.getElementById('formEditarCategoria').action = '/categorias/' + id + '/editar';
+    document.getElementById('modalEditarTitulo').textContent = 'Editar Categoria de Transacao';
+    document.getElementById('editNome').value = nome;
+    document.getElementById('editTipo').value = tipo;
+    document.getElementById('editCor').value = cor;
+    document.getElementById('grupoEditTipo').style.display = '';
+    new bootstrap.Modal(document.getElementById('modalEditarCategoria')).show();
+}
+
+function abrirEdicaoInvestimento(id, nome, cor) {
+    document.getElementById('formEditarCategoria').action = '/categorias/investimento/' + id + '/editar';
+    document.getElementById('modalEditarTitulo').textContent = 'Editar Categoria de Investimento';
+    document.getElementById('editNome').value = nome;
+    document.getElementById('editCor').value = cor;
+    document.getElementById('grupoEditTipo').style.display = 'none';
+    new bootstrap.Modal(document.getElementById('modalEditarCategoria')).show();
+}
+</script>
 {% endblock %}

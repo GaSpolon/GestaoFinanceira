@@ -8,6 +8,19 @@
 {% block conteudo %}
 <h1 class="mb-4">Dashboard Financeiro</h1>
 
+<!-- Importacao de extrato -->
+<div class="row mb-3" id="secaoImportar">
+    <div class="col-12">
+        <div class="d-flex align-items-center gap-3">
+            <label class="btn btn-outline-info btn-sm mb-0" for="inputArquivoImportar">
+                Importar Extrato Nubank
+            </label>
+            <input type="file" id="inputArquivoImportar" accept=".csv"
+                   style="display:none" onchange="importarCSV(this.files[0])">
+            <span id="statusImportacao" class="text-muted small"></span>
+        </div>
+    </div>
+</div>
 <!-- Filtro de período -->
 <div class="row mb-4">
     <div class="col-md-4">

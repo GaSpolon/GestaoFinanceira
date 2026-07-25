@@ -103,10 +103,15 @@
                         <td class="fw-bold {% if r.valor_display >= 0 %}text-success{% else %}text-danger{% endif %}">
                             {{ r.valor_formatado }}
                         </td>
-                        <td>
+                        <td class="text-nowrap">
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-1"
+                                    onclick="abrirEdicao('{{ r.origem }}', {{ r.id }}, '{{ r.tipo }}', '{{ r.descricao|e }}', {{ r.valor }}, '{{ r.data }}', {{ r.categoria_id }}, '{{ r.forma_pagamento or '' }}')"
+                                    title="Editar">
+                                &#9998;
+                            </button>
                             <form method="POST" action="{{ url_for('excluir_do_historico', origem=r.origem, id=r.id) }}"
                                   onsubmit="return confirm('Excluir este registro?')" style="display:inline">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
+                                <button type="submit" class="btn btn-sm btn-outline-danger">&times;</button>
                             </form>
                         </td>
                     </tr>
@@ -122,4 +127,125 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Modal de Edicao -->
+<div class="modal fade" id="modalEditar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="formEditar" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalEditarTitulo">Editar Registro</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editTipo" class="form-label fw-semibold">Tipo</label>
+                        <select id="editTipo" name="tipo" class="form-select"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editDescricao" class="form-label fw-semibold">Descricao</label>
+                        <input type="text" id="editDescricao" name="descricao" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editValor" class="form-label fw-semibold">Valor (R$)</label>
+                        <input type="number" id="editValor" name="valor" class="form-control" step="0.01" min="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editData" class="form-label fw-semibold">Data</label>
+                        <input type="date" id="editData" name="data" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCategoria" class="form-label fw-semibold">Categoria</label>
+                        <select id="editCategoria" name="categoria_id" class="form-select"></select>
+                    </div>
+                    <div class="mb-3" id="grupoEditFormaPagamento">
+                        <label for="editFormaPagamento" class="form-label fw-semibold">Forma de Pagamento</label>
+                        <select id="editFormaPagamento" name="forma_pagamento" class="form-select">
+                            <option value="">---</option>
+                            <option value="debito">Debito</option>
+                            <option value="credito">Credito</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alteracoes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Dados de categorias para o JS -->
+<script id="categoriasData" type="application/json">
+{
+    "transacao": [
+        {% for cat in categorias_todas %}
+        {"id": {{ cat.id }}, "nome": "{{ cat.nome|e }}", "tipo": "{{ cat.tipo }}"}{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ],
+    "investimento": [
+        {% for cat in categorias_investimento_todas %}
+        {"id": {{ cat.id }}, "nome": "{{ cat.nome|e }}"}{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ]
+}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const categoriasData = JSON.parse(document.getElementById('categoriasData').textContent);
+
+function abrirEdicao(origem, id, tipo, descricao, valor, data, categoriaId, formaPagamento) {
+    const form = document.getElementById('formEditar');
+    const isTransacao = origem === 'transacao';
+
+    form.action = isTransacao
+        ? '/historico/transacao/' + id + '/editar'
+        : '/historico/investimento/' + id + '/editar';
+
+    document.getElementById('modalEditarTitulo').textContent =
+        'Editar ' + (isTransacao ? 'Transacao' : 'Investimento');
+
+    // Tipo
+    const selectTipo = document.getElementById('editTipo');
+    selectTipo.innerHTML = '';
+    if (isTransacao) {
+        selectTipo.innerHTML = '<option value="entrada">Entrada</option><option value="saida">Saida</option>';
+        selectTipo.value = tipo;
+    } else {
+        selectTipo.innerHTML = '<option value="aporte">Aporte</option><option value="resgate">Resgate</option>';
+        selectTipo.value = tipo;
+    }
+
+    document.getElementById('editDescricao').value = descricao;
+    document.getElementById('editValor').value = valor;
+    document.getElementById('editData').value = data;
+
+    // Categorias
+    const selectCat = document.getElementById('editCategoria');
+    selectCat.innerHTML = '';
+    const cats = isTransacao ? categoriasData.transacao : categoriasData.investimento;
+    cats.forEach(function(cat) {
+        const opt = document.createElement('option');
+        opt.value = cat.id;
+        opt.textContent = cat.nome;
+        if (cat.id === categoriaId) opt.selected = true;
+        selectCat.appendChild(opt);
+    });
+
+    // Forma de pagamento (apenas transacoes)
+    const grupoFp = document.getElementById('grupoEditFormaPagamento');
+    const selectFp = document.getElementById('editFormaPagamento');
+    if (isTransacao) {
+        grupoFp.style.display = '';
+        selectFp.value = formaPagamento || '';
+    } else {
+        grupoFp.style.display = 'none';
+    }
+
+    new bootstrap.Modal(document.getElementById('modalEditar')).show();
+}
+</script>
 {% endblock %}

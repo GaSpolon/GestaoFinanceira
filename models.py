@@ -29,6 +29,8 @@ class Transacao(db.Model):
     data = db.Column(db.Date, nullable=False, default=date.today)
     categoria_id = db.Column(db.Integer, db.ForeignKey("categorias.id"), nullable=False)
     forma_pagamento = db.Column(db.String(10), nullable=True)  # "debito" | "credito" | None (entradas)
+    identificador = db.Column(db.String(100), nullable=True, index=True)  # UUID do Nubank para dedup
+    origem_importacao = db.Column(db.String(50), nullable=True)  # "nubank_csv" | None (manual)
     criada_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     categoria = db.relationship("Categoria", back_populates="transacoes")
@@ -60,6 +62,8 @@ class MovimentacaoInvestimento(db.Model):
     valor = db.Column(db.Float, nullable=False)
     data = db.Column(db.Date, nullable=False, default=date.today)
     categoria_id = db.Column(db.Integer, db.ForeignKey("categorias_investimento.id"), nullable=False)
+    identificador = db.Column(db.String(100), nullable=True, index=True)
+    origem_importacao = db.Column(db.String(50), nullable=True)
     criada_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     categoria = db.relationship("CategoriaInvestimento", back_populates="movimentacoes")

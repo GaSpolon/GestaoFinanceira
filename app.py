@@ -24,12 +24,19 @@ def criar_app():
 
     with app.app_context():
         db.create_all()
-        # Migracao: adiciona coluna forma_pagamento se nao existir
-        try:
-            db.session.execute(db.text("ALTER TABLE transacoes ADD COLUMN forma_pagamento VARCHAR(10)"))
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
+        # Migracoes: adiciona colunas se nao existirem
+        for tabela, col, tipo in [
+            ("transacoes", "forma_pagamento", "VARCHAR(10)"),
+            ("transacoes", "identificador", "VARCHAR(100)"),
+            ("transacoes", "origem_importacao", "VARCHAR(50)"),
+            ("movimentacoes_investimento", "identificador", "VARCHAR(100)"),
+            ("movimentacoes_investimento", "origem_importacao", "VARCHAR(50)"),
+        ]:
+            try:
+                db.session.execute(db.text(f"ALTER TABLE {tabela} ADD COLUMN {col} {tipo}"))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
         _semear_categorias()
         _semear_categorias_investimento()
 
@@ -76,6 +83,7 @@ def _semear_categorias():
     for nome, tipo, cor in padrao:
         db.session.add(Categoria(nome=nome, tipo=tipo, cor=cor))
     db.session.commit()
+
 
 
 app = criar_app()
@@ -465,6 +473,7 @@ def historico():
                 "descricao": t.descricao,
                 "nome_categoria": t.categoria.nome if t.categoria else "---",
                 "cor_categoria": t.categoria.cor if t.categoria else "#6c757d",
+                "categoria_id": t.categoria_id,
                 "valor": t.valor,
                 "valor_display": t.valor if t.tipo == "entrada" else -t.valor,
                 "valor_formatado": f"R$ {t.valor:.2f}",
@@ -490,6 +499,7 @@ def historico():
                 "descricao": m.descricao,
                 "nome_categoria": m.categoria.nome if m.categoria else "---",
                 "cor_categoria": m.categoria.cor if m.categoria else "#6c757d",
+                "categoria_id": m.categoria_id,
                 "valor": m.valor,
                 "valor_display": m.valor if m.tipo == "aporte" else -m.valor,
                 "valor_formatado": f"R$ {m.valor:.2f}",
@@ -498,6 +508,9 @@ def historico():
     # Ordena por data descendente
     registros.sort(key=lambda r: (r["data"], r["id"]), reverse=True)
 
+    categorias_todas = Categoria.query.order_by(Categoria.tipo, Categoria.nome).all()
+    categorias_investimento_todas = CategoriaInvestimento.query.order_by(CategoriaInvestimento.nome).all()
+
     return render_template(
         "historico.html",
         registros=registros,
@@ -505,6 +518,8 @@ def historico():
         filtro_tipo=filtro_tipo,
         filtro_data_inicio=filtro_data_inicio,
         filtro_data_fim=filtro_data_fim,
+        categorias_todas=categorias_todas,
+        categorias_investimento_todas=categorias_investimento_todas,
     )
 
 
@@ -529,6 +544,51 @@ def excluir_do_historico(origem, id):
     return redirect(url_for("historico"))
 
 
+@app.route("/historico/transacao/<int:id>/editar", methods=["POST"])
+def editar_transacao_historico(id):
+    t = db.session.get(Transacao, id)
+    if not t:
+        flash("Transacao nao encontrada.", "danger")
+        return redirect(url_for("historico"))
+    t.tipo = request.form["tipo"]
+    t.descricao = request.form["descricao"].strip()
+    try:
+        t.valor = abs(float(request.form["valor"].replace(",", ".")))
+    except (ValueError, KeyError):
+        flash("Valor invalido.", "danger")
+        return redirect(url_for("historico"))
+    try:
+        t.data = date.fromisoformat(request.form["data"])
+    except (ValueError, KeyError):
+        pass
+    t.categoria_id = int(request.form["categoria_id"])
+    t.forma_pagamento = request.form.get("forma_pagamento") or None
+    db.session.commit()
+    flash("Transacao atualizada com sucesso!", "success")
+    return redirect(url_for("historico"))
+
+
+@app.route("/historico/investimento/<int:id>/editar", methods=["POST"])
+def editar_investimento_historico(id):
+    m = db.session.get(MovimentacaoInvestimento, id)
+    if not m:
+        flash("Movimentacao nao encontrada.", "danger")
+        return redirect(url_for("historico"))
+    m.tipo = request.form["tipo"]
+    m.descricao = request.form["descricao"].strip()
+    try:
+        m.valor = abs(float(request.form["valor"].replace(",", ".")))
+    except (ValueError, KeyError):
+        flash("Valor invalido.", "danger")
+        return redirect(url_for("historico"))
+    try:
+        m.data = date.fromisoformat(request.form["data"])
+    except (ValueError, KeyError):
+        pass
+    m.categoria_id = int(request.form["categoria_id"])
+    db.session.commit()
+    flash("Movimentacao de investimento atualizada com sucesso!", "success")
+    return redirect(url_for("historico"))
 # ─── Tendencias ─────────────────────────────────────────────────────────
 
 
@@ -587,6 +647,40 @@ def api_tendencias():
         "total_periodo": round(total_periodo, 2),
     })
 
+
+# ─── Importacao de CSV ──────────────────────────────────────────────────
+
+
+@app.route("/api/importar", methods=["POST"])
+def api_importar():
+    """Recebe upload de arquivo CSV do Nubank e processa via importar_csv."""
+    if "arquivo" not in request.files:
+        return jsonify({"ok": False, "erro": "Nenhum arquivo enviado."}), 400
+    arquivo = request.files["arquivo"]
+    if arquivo.filename == "":
+        return jsonify({"ok": False, "erro": "Nome de arquivo vazio."}), 400
+
+    import tempfile, os
+    from importar_csv import processar_arquivo_csv
+    from pathlib import Path
+
+    with tempfile.NamedTemporaryFile(mode="wb", suffix=".csv", delete=False) as tmp:
+        arquivo.save(tmp.name)
+        tmp_path = tmp.name
+
+    try:
+        resultado = processar_arquivo_csv(Path(tmp_path))
+        db.session.commit()
+        return jsonify({"ok": True, **resultado})
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+
+
 # ─── Categorias (transacoes + investimentos) ────────────────────────────
 
 
@@ -595,8 +689,6 @@ def categorias():
     todas = Categoria.query.order_by(Categoria.tipo, Categoria.nome).all()
     todas_inv = CategoriaInvestimento.query.order_by(CategoriaInvestimento.nome).all()
     return render_template("categorias.html", categorias=todas, categorias_investimento=todas_inv)
-
-
 @app.route("/categorias/criar", methods=["POST"])
 def criar_categoria():
     nome = request.form["nome"].strip()
@@ -632,6 +724,30 @@ def excluir_categoria(id):
     return redirect(url_for("categorias"))
 
 
+@app.route("/categorias/<int:id>/editar", methods=["POST"])
+def editar_categoria(id):
+    c = db.session.get(Categoria, id)
+    if not c:
+        flash("Categoria nao encontrada.", "danger")
+        return redirect(url_for("categorias"))
+    nome = request.form["nome"].strip()
+    tipo = request.form["tipo"]
+    cor = request.form.get("cor", c.cor)
+    if not nome:
+        flash("O nome da categoria nao pode ficar vazio.", "danger")
+        return redirect(url_for("categorias"))
+    existente = Categoria.query.filter(Categoria.nome == nome, Categoria.id != id).first()
+    if existente:
+        flash("Ja existe uma categoria com esse nome.", "danger")
+        return redirect(url_for("categorias"))
+    c.nome = nome
+    c.tipo = tipo
+    c.cor = cor
+    db.session.commit()
+    flash("Categoria atualizada com sucesso!", "success")
+    return redirect(url_for("categorias"))
+
+
 @app.route("/categorias/investimento/criar", methods=["POST"])
 def criar_categoria_investimento():
     nome = request.form["nome"].strip()
@@ -650,6 +766,30 @@ def criar_categoria_investimento():
     flash("Categoria de investimento criada com sucesso!", "success")
     return redirect(url_for("categorias"))
 
+
+
+@app.route("/categorias/investimento/<int:id>/editar", methods=["POST"])
+def editar_categoria_investimento(id):
+    c = db.session.get(CategoriaInvestimento, id)
+    if not c:
+        flash("Categoria nao encontrada.", "danger")
+        return redirect(url_for("categorias"))
+    nome = request.form["nome"].strip()
+    cor = request.form.get("cor", c.cor)
+    if not nome:
+        flash("O nome da categoria nao pode ficar vazio.", "danger")
+        return redirect(url_for("categorias"))
+    existente = CategoriaInvestimento.query.filter(
+        CategoriaInvestimento.nome == nome, CategoriaInvestimento.id != id
+    ).first()
+    if existente:
+        flash("Ja existe uma categoria com esse nome.", "danger")
+        return redirect(url_for("categorias"))
+    c.nome = nome
+    c.cor = cor
+    db.session.commit()
+    flash("Categoria de investimento atualizada com sucesso!", "success")
+    return redirect(url_for("categorias"))
 
 @app.route("/categorias/investimento/<int:id>/excluir", methods=["POST"])
 def excluir_categoria_investimento(id):
