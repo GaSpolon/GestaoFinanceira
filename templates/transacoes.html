@@ -33,7 +33,7 @@
                         <label for="data" class="form-label fw-semibold">Data</label>
                         <input type="date" name="data" id="data" class="form-control form-control-lg" value="{{ hoje }}">
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-4">
                         <label for="categoria_id" class="form-label fw-semibold">Categoria</label>
                         <select name="categoria_id" id="categoria_id" class="form-select form-select-lg" required>
                             {% for cat in categorias %}
@@ -41,10 +41,16 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-3 d-flex align-items-end">
+                    <div class="col-md-2" id="grupoFormaPagamento">
+                        <label for="forma_pagamento" class="form-label fw-semibold">Pagamento</label>
+                        <select name="forma_pagamento" id="forma_pagamento" class="form-select form-select-lg">
+                            <option value="debito">Debito</option>
+                            <option value="credito">Credito</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
                         <button type="submit" class="btn btn-success btn-lg w-100">
-                            <span class="d-inline-block me-1" style="font-size:0.9em;"></span>
-                            Registrar Transação
+                            Registrar Transacao
                         </button>
                     </div>
                 </form>
@@ -62,6 +68,7 @@
 
 {% block scripts %}
 <script>
+const grupoForma = document.getElementById('grupoFormaPagamento');
 document.getElementById('tipo').addEventListener('change', function() {
     const tipo = this.value;
     const select = document.getElementById('categoria_id');
@@ -74,6 +81,7 @@ document.getElementById('tipo').addEventListener('change', function() {
             break;
         }
     }
+    grupoForma.style.display = tipo === 'saida' ? '' : 'none';
 });
 document.getElementById('tipo').dispatchEvent(new Event('change'));
 </script>

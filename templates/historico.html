@@ -56,6 +56,7 @@
                         <th>Data</th>
                         <th>Origem</th>
                         <th>Tipo</th>
+                        <th>Pagamento</th>
                         <th>Descricao</th>
                         <th>Categoria</th>
                         <th>Valor</th>
@@ -82,6 +83,15 @@
                             <span class="badge bg-success">Aporte</span>
                             {% else %}
                             <span class="badge bg-warning text-dark">Resgate</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if r.forma_pagamento == 'credito' %}
+                            <span class="badge bg-info">Credito</span>
+                            {% elif r.forma_pagamento == 'debito' %}
+                            <span class="badge bg-secondary">Debito</span>
+                            {% else %}
+                            <span class="text-muted">---</span>
                             {% endif %}
                         </td>
                         <td>{{ r.descricao }}</td>

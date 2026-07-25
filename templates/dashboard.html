@@ -29,7 +29,7 @@
 
 <!-- Cartões de resumo -->
 <div class="row mb-4">
-    <div class="col-md-4 mb-3">
+    <div class="col-md-3 mb-3">
         <div class="card border-success h-100">
             <div class="card-body text-center">
                 <h6 class="card-subtitle text-muted mb-2">Total de Receitas</h6>
@@ -37,7 +37,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-3">
+    <div class="col-md-3 mb-3">
         <div class="card border-danger h-100">
             <div class="card-body text-center">
                 <h6 class="card-subtitle text-muted mb-2">Total de Despesas</h6>
@@ -45,11 +45,19 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-3">
+    <div class="col-md-3 mb-3">
         <div class="card border-primary h-100">
             <div class="card-body text-center">
                 <h6 class="card-subtitle text-muted mb-2">Saldo do Período</h6>
                 <h2 class="text-primary mb-0" id="saldoPeriodo">R$ 0,00</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card border-warning h-100">
+            <div class="card-body text-center">
+                <h6 class="card-subtitle text-muted mb-2">Fatura Cartão</h6>
+                <h2 class="text-warning mb-0" id="totalCredito">R$ 0,00</h2>
             </div>
         </div>
     </div>
@@ -70,6 +78,26 @@
             <div class="card-header">Receitas vs Despesas</div>
             <div class="card-body">
                 <canvas id="graficoBarras"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Crédito -->
+<div class="row mb-4">
+    <div class="col-lg-5 mb-4">
+        <div class="card h-100">
+            <div class="card-header">Cartão de Crédito por Categoria</div>
+            <div class="card-body">
+                <canvas id="graficoCreditoPizza"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7 mb-4">
+        <div class="card h-100">
+            <div class="card-header">Evolução do Cartão de Crédito</div>
+            <div class="card-body">
+                <canvas id="graficoCreditoLinha"></canvas>
             </div>
         </div>
     </div>

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block titulo %}Tendencias — Gestao Financeira{% endblock %}
+
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block conteudo %}
+<h1 class="mb-4">Tendencias por Categoria</h1>
+
+<!-- Filtros -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <label for="filtroCategoria" class="form-label">Categoria</label>
+        <select id="filtroCategoria" class="form-select">
+            <option value="">Todas as categorias</option>
+            {% for cat in categorias %}
+            <option value="{{ cat.id }}">{{ cat.nome }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label for="filtroPeriodo" class="form-label">Periodo</label>
+        <select id="filtroPeriodo" class="form-select">
+            {% for chave, label in periodos_disponiveis %}
+            <option value="{{ chave }}">{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label for="filtroValor" class="form-label">Valor do periodo</label>
+        <select id="filtroValor" class="form-select"></select>
+    </div>
+    <div class="col-md-3 d-flex align-items-end">
+        <button id="btnAtualizar" class="btn btn-primary w-100">Atualizar</button>
+    </div>
+</div>
+
+<!-- Card de total -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-info h-100">
+            <div class="card-body text-center">
+                <h6 class="card-subtitle text-muted mb-2">Total de Gastos no Periodo</h6>
+                <h2 class="text-info mb-0" id="totalPeriodo">R$ 0,00</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grafico de linha -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">Evolucao dos Gastos</div>
+            <div class="card-body">
+                <canvas id="graficoTendencia"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/tendencias.js') }}"></script>
+{% endblock %}

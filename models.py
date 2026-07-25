@@ -28,6 +28,7 @@ class Transacao(db.Model):
     valor = db.Column(db.Float, nullable=False)
     data = db.Column(db.Date, nullable=False, default=date.today)
     categoria_id = db.Column(db.Integer, db.ForeignKey("categorias.id"), nullable=False)
+    forma_pagamento = db.Column(db.String(10), nullable=True)  # "debito" | "credito" | None (entradas)
     criada_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     categoria = db.relationship("Categoria", back_populates="transacoes")

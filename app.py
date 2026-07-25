@@ -24,6 +24,12 @@ def criar_app():
 
     with app.app_context():
         db.create_all()
+        # Migracao: adiciona coluna forma_pagamento se nao existir
+        try:
+            db.session.execute(db.text("ALTER TABLE transacoes ADD COLUMN forma_pagamento VARCHAR(10)"))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
         _semear_categorias()
         _semear_categorias_investimento()
 
@@ -181,11 +187,30 @@ def api_dados():
     pie_data = [v["valor"] for v in categorias_gasto.values()]
     pie_colors = [v["cor"] for v in categorias_gasto.values()]
 
+    # ── Credito ──────────────────────────────────────────────────
+    total_credito = sum(t.valor for t in transacoes if t.tipo == "saida" and t.forma_pagamento == "credito")
+    total_debito = sum(t.valor for t in transacoes if t.tipo == "saida" and t.forma_pagamento == "debito")
+
+    # Gastos credito por categoria
+    credito_cats = {}
+    for t in transacoes:
+        if t.tipo == "saida" and t.forma_pagamento == "credito":
+            nome = t.categoria.nome if t.categoria else "Sem categoria"
+            cor = t.categoria.cor if t.categoria else "#6c757d"
+            if nome not in credito_cats:
+                credito_cats[nome] = {"valor": 0, "cor": cor}
+            credito_cats[nome]["valor"] += t.valor
+
+    credito_pie_labels = list(credito_cats.keys())
+    credito_pie_data = [v["valor"] for v in credito_cats.values()]
+    credito_pie_colors = [v["cor"] for v in credito_cats.values()]
+
     # Evolucao mensal
     meses = _gerar_meses_no_periodo(data_inicio, data_fim)
     evolucao_labels = []
     receitas_mensais = []
     despesas_mensais = []
+    credito_mensal = []
     for ano, mes in meses:
         label = f"{mes:02d}/{ano}"
         receitas_mensais.append(
@@ -202,6 +227,14 @@ def api_dados():
                 if t.tipo == "saida" and t.data.year == ano and t.data.month == mes
             )
         )
+        credito_mensal.append(
+            sum(
+                t.valor
+                for t in transacoes
+                if t.tipo == "saida" and t.forma_pagamento == "credito"
+                and t.data.year == ano and t.data.month == mes
+            )
+        )
         evolucao_labels.append(label)
 
     saldo_acumulado = []
@@ -215,12 +248,18 @@ def api_dados():
             "total_entradas": round(total_entradas, 2),
             "total_saidas": round(total_saidas, 2),
             "saldo": round(saldo, 2),
+            "total_credito": round(total_credito, 2),
+            "total_debito": round(total_debito, 2),
             "pie_labels": pie_labels,
             "pie_data": [round(v, 2) for v in pie_data],
             "pie_colors": pie_colors,
+            "credito_pie_labels": credito_pie_labels,
+            "credito_pie_data": [round(v, 2) for v in credito_pie_data],
+            "credito_pie_colors": credito_pie_colors,
             "evolucao_labels": evolucao_labels,
             "receitas_mensais": [round(v, 2) for v in receitas_mensais],
             "despesas_mensais": [round(v, 2) for v in despesas_mensais],
+            "credito_mensal": [round(v, 2) for v in credito_mensal],
             "saldo_acumulado": saldo_acumulado,
         }
     )
@@ -311,6 +350,7 @@ def transacoes():
             data = date.fromisoformat(request.form["data"])
         except (ValueError, KeyError):
             data = date.today()
+        forma_pagamento = request.form.get("forma_pagamento", "") or None
 
         if valor <= 0:
             flash("O valor deve ser positivo.", "danger")
@@ -325,6 +365,7 @@ def transacoes():
             valor=valor,
             data=data,
             categoria_id=categoria_id,
+            forma_pagamento=forma_pagamento,
         )
         db.session.add(t)
         db.session.commit()
@@ -420,6 +461,7 @@ def historico():
                 "data": t.data,
                 "tipo": t.tipo,
                 "tipo_display": "Entrada" if t.tipo == "entrada" else "Saida",
+                "forma_pagamento": t.forma_pagamento,
                 "descricao": t.descricao,
                 "nome_categoria": t.categoria.nome if t.categoria else "---",
                 "cor_categoria": t.categoria.cor if t.categoria else "#6c757d",
@@ -444,6 +486,7 @@ def historico():
                 "data": m.data,
                 "tipo": m.tipo,
                 "tipo_display": "Aporte" if m.tipo == "aporte" else "Resgate",
+                "forma_pagamento": None,
                 "descricao": m.descricao,
                 "nome_categoria": m.categoria.nome if m.categoria else "---",
                 "cor_categoria": m.categoria.cor if m.categoria else "#6c757d",
@@ -485,6 +528,64 @@ def excluir_do_historico(origem, id):
             flash("Movimentacao nao encontrada.", "danger")
     return redirect(url_for("historico"))
 
+
+# ─── Tendencias ─────────────────────────────────────────────────────────
+
+
+@app.route("/tendencias")
+def tendencias():
+    categorias = Categoria.query.filter_by(tipo="saida").order_by(Categoria.nome).all()
+    periodos_disponiveis = [
+        ("mensal", "Mensal"),
+        ("trimestral", "Trimestral"),
+        ("semestral", "Semestral"),
+        ("anual", "Anual"),
+    ]
+    return render_template(
+        "tendencias.html",
+        categorias=categorias,
+        periodos_disponiveis=periodos_disponiveis,
+    )
+
+
+@app.route("/api/tendencias")
+def api_tendencias():
+    categoria_id = request.args.get("categoria_id", type=int)
+    periodo = request.args.get("periodo", "mensal")
+    valor = request.args.get("valor", "")
+    data_inicio, data_fim = _parse_periodo(periodo, valor)
+
+    q = Transacao.query.filter(
+        Transacao.tipo == "saida",
+        Transacao.data >= data_inicio,
+        Transacao.data <= data_fim,
+    )
+    if categoria_id:
+        q = q.filter(Transacao.categoria_id == categoria_id)
+
+    transacoes = q.all()
+
+    meses = _gerar_meses_no_periodo(data_inicio, data_fim)
+    evolucao_labels = []
+    gastos_mensais = []
+    for ano, mes in meses:
+        label = f"{mes:02d}/{ano}"
+        gastos_mensais.append(
+            sum(
+                t.valor
+                for t in transacoes
+                if t.data.year == ano and t.data.month == mes
+            )
+        )
+        evolucao_labels.append(label)
+
+    total_periodo = sum(gastos_mensais)
+
+    return jsonify({
+        "evolucao_labels": evolucao_labels,
+        "gastos_mensais": [round(v, 2) for v in gastos_mensais],
+        "total_periodo": round(total_periodo, 2),
+    })
 
 # ─── Categorias (transacoes + investimentos) ────────────────────────────
 

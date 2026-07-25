@@ -1,10 +1,13 @@
 /**
- * Gráficos dinâmicos do Dashboard Financeiro
- * Gerencia 3 Chart.js instâncias: pizza (despesas), barras (receita vs despesa), linha (saldo)
+ * Graficos dinamicos do Dashboard Financeiro
+ * Gerencia 5 Chart.js instancias: pizza (despesas), barras (receita vs despesa),
+ * pizza credito (cartao por categoria), linha credito (evolucao fatura), linha (saldo)
  */
 
 let graficoPizza = null;
 let graficoBarras = null;
+let graficoCreditoPizza = null;
+let graficoCreditoLinha = null;
 let graficoLinha = null;
 
 function formatarMoeda(valor) {
@@ -81,15 +84,16 @@ async function carregarDados() {
         const resp = await fetch(`/api/dados?periodo=${periodo}&valor=${valor}`);
         const dados = await resp.json();
 
-        // Cartões
+        // Cartoes
         document.getElementById('totalEntradas').textContent = formatarMoeda(dados.total_entradas);
         document.getElementById('totalSaidas').textContent = formatarMoeda(dados.total_saidas);
+        document.getElementById('totalCredito').textContent = formatarMoeda(dados.total_credito);
 
         const saldoEl = document.getElementById('saldoPeriodo');
         saldoEl.textContent = formatarMoeda(dados.saldo);
         saldoEl.className = 'mb-0 ' + (dados.saldo >= 0 ? 'text-success' : 'text-danger');
 
-        // Gráfico de pizza — despesas por categoria
+        // Grafico de pizza — despesas por categoria
         if (graficoPizza) graficoPizza.destroy();
         const ctxPizza = document.getElementById('graficoPizza').getContext('2d');
         graficoPizza = new Chart(ctxPizza, {
@@ -119,7 +123,7 @@ async function carregarDados() {
             }
         });
 
-        // Gráfico de barras — receitas vs despesas
+        // Grafico de barras — receitas vs despesas
         if (graficoBarras) graficoBarras.destroy();
         const ctxBarras = document.getElementById('graficoBarras').getContext('2d');
         graficoBarras = new Chart(ctxBarras, {
@@ -165,7 +169,77 @@ async function carregarDados() {
             }
         });
 
-        // Gráfico de linha — saldo acumulado
+        // Grafico de pizza — cartao de credito por categoria
+        if (graficoCreditoPizza) graficoCreditoPizza.destroy();
+        const ctxCreditoPizza = document.getElementById('graficoCreditoPizza').getContext('2d');
+        graficoCreditoPizza = new Chart(ctxCreditoPizza, {
+            type: 'pie',
+            data: {
+                labels: dados.credito_pie_labels,
+                datasets: [{
+                    data: dados.credito_pie_data,
+                    backgroundColor: dados.credito_pie_colors,
+                    borderWidth: 1,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'right', labels: { padding: 12, font: { size: 12 } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                                const pct = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
+                                return ` ${ctx.label}: ${formatarMoeda(ctx.parsed)} (${pct}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Grafico de linha — evolucao do cartao de credito
+        if (graficoCreditoLinha) graficoCreditoLinha.destroy();
+        const ctxCreditoLinha = document.getElementById('graficoCreditoLinha').getContext('2d');
+        graficoCreditoLinha = new Chart(ctxCreditoLinha, {
+            type: 'line',
+            data: {
+                labels: dados.evolucao_labels,
+                datasets: [{
+                    label: 'Fatura do Cartao',
+                    data: dados.credito_mensal,
+                    borderColor: 'rgba(255, 193, 7, 1)',
+                    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function (val) { return 'R$ ' + val.toFixed(0); }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                return ` Fatura: ${formatarMoeda(ctx.parsed.y)}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Grafico de linha — saldo acumulado
         if (graficoLinha) graficoLinha.destroy();
         const ctxLinha = document.getElementById('graficoLinha').getContext('2d');
         graficoLinha = new Chart(ctxLinha, {
@@ -211,13 +285,13 @@ async function carregarDados() {
     }
 }
 
-// Inicialização
+// Inicializacao
 document.addEventListener('DOMContentLoaded', function () {
     gerarOpcoesPeriodo();
     carregarDados();
 
     document.getElementById('filtroPeriodo').addEventListener('change', gerarOpcoesPeriodo);
     document.getElementById('btnAtualizar').addEventListener('click', carregarDados);
-    // Recarregar automático ao trocar o valor do período
+    // Recarregar automatico ao trocar o valor do periodo
     document.getElementById('filtroValor').addEventListener('change', carregarDados);
 });

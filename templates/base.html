@@ -41,6 +41,10 @@
                            href="{{ url_for('investimentos') }}">Investimentos</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'tendencias' %}active{% endif %}"
+                           href="{{ url_for('tendencias') }}">Tendencias</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'categorias' %}active{% endif %}"
                            href="{{ url_for('categorias') }}">Categorias</a>
                     </li>
